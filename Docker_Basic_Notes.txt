@@ -1,0 +1,431 @@
+########## Docker Basic Commands #########  Ref-link: https://docs.docker.com/engine/reference/commandline/cli/
+
+# docker version
+# docker info
+
+#### List the docker images  ####
+
+# docker images
+# docker image ls
+# docker search <image-name>	// To find out the docker images on Docker HUB Registory. 
+
+#### List the docker Containers ####
+
+# docker ps   		//Only Running containers. 
+# docker ps -a   	// List all containers.
+
+
+#### Run a Docker Container ####
+
+-> A container is a process which runs on a host.
+
+-> When starting a Docker container, you must first decide if you want to run the container in the background in a “detached” mode 
+   or in the default foreground mode:
+
+# docker run			// Create and run a new container from an image
+# docker container run
+
+Important Options:
+	--interactive , -i	// Keep STDIN open even if not attached.
+	--detach , -d		// Run container in background and print container ID.
+	--publish , -p		// Publish a container’s port(s) to the host.
+	--publish-all , -P	// Publish all exposed ports to random ports.
+	--expose		// Expose a port or a range of ports.
+	--name			// Assign a name to the container.
+	--network		// Connect a container to a network.
+	--rm			// Automatically remove the container when it exits.
+	--env , -e		// Set environment variables.
+	--volume , -v		// Bind mount a volume.
+
+#Examples:
+	# docker run -it --name=one ubuntu /bin/bash
+	# docker run -d --name=webserver nginx
+	# docker run -it --memory="1g" --name=mem-test ubuntu
+	# docker run -it --rm --name web ubuntu
+	# docker run -itd --name=web -p 80:80 nginx
+
+	
+
+Container Restart policies: 	// --restart to specify a container’s restart policy.
+no		// Do not automatically restart the container when it exits. This is the default. 
+on-failure	// Restart only if the container exits with a non-zero exit status.
+unless-stopped	// Restart the container unless it is explicitly stopped or Docker itself is stopped or restarted.
+always		// Always restart the container regardless of the exit status. When you specify always, 
+		   the Docker daemon will try to restart the container indefinitely.
+
+#### Start/Stop/Remove a Docker Container and Images ####
+
+# docker container stop	<container-name/id>	// Stop one or more running containers.
+# docker stop $(docker ps -a -q) 		// Stop all Running containers.
+
+# docker container rm	<container-name/id>	// Remove one or more containers.
+
+# docker container prune			// Remove all Unused/stopped containers.
+
+# docker image rm <img-name>			//Remove one or more docker images.
+# docker rmi <img-name>	
+# docker rmi $(docker images -q)		// Remove all Images		
+
+# docker image prune -a				// Remove all Unused Images.
+
+#### How you can fetch the IP address of all running containers: ####
+
+#!/bin/bash
+for user in $(docker ps | cut -d " " -f 1 | sed 1d)
+do
+
+        echo `docker exec -it $user hostname -i`
+done
+
+
+#### Other important commands ####
+
+# docker history	// docker history
+Example: 
+	# docker history nginx:latest	//image-name
+
+# docker inspect	// provides detailed information.
+# docker login		// Login into Docker Registory
+# docker logout		// Logout from Docker Registory
+# docker logs 		// Fetch the logs of a container
+# docker pull		// Download an image from a registry
+Example:
+	# docker pull ankitsdocker/project:httpd      // docker pull reponame:tag
+
+# docker push		// Upload an image to a registry
+
+# docker exec		// Execute a command in a running container
+# docker cp		// Copy files/folders between a container and the local filesystem
+Example:
+	# docker cp script.sh 562fdf43e6b6:/tmp
+
+# docker diff		// Inspect changes to files or directories on a container’s filesystem
+# docker top		// Display the running processes of a container
+# docker tag		// Create a tag TARGET_IMAGE that refers to SOURCE_IMAGE
+Example:
+To tag a local image with ID “0e5574283393” into the “fedora” repository with “version1.0”:
+	# docker tag 0e5574283393 fedora/httpd:version1.0
+	
+To tag a local image with name “httpd” and tag “test” into the “fedora” repository with “version1.0.test”:
+	# docker tag httpd:test fedora/httpd:version1.0.test
+
+
+# docker build		// Build an image from a Dockerfile.
+# docker commit		// Create a new image from a container’s changes
+Example:
+	# docker run -itd --name=baseos ubuntu /bin/bash
+	# docker attach dee6b0dca6bb
+	Now make some changes.
+	# docker diff <con-name>
+	# docker commit <running-container-name> <img>:<tag>
+
+# docker system command ###  Ref: https://docs.docker.com/engine/reference/commandline/system/
+
+
+#### Docker File Creation ####   Ref: https://docs.docker.com/engine/reference/builder/
+
+--> Docker can build images automatically by reading the instructions from a Dockerfile.
+--> A Dockerfile is a text document that contains all the commands a user could call on the command line to assemble an image. 
+
+#############################################################################################################
+
+FROM centos:7
+RUN yum update -y
+RUN yum install httpd -y
+RUN echo "welcome to my web server:v1 running on CentOS-7" > /var/www/html/index.html
+CMD ["/usr/sbin/httpd", "-D", "FOREGROUND"]
+EXPOSE 80
+
+#############################################################################################################
+
+Dockerfile Format:  The instruction is not case-sensitive.
+# Comment
+INSTRUCTION arguments
+
+Note: Docker runs instructions in a Dockerfile in order. A Dockerfile must begin with a FROM instruction. 
+
+#FROM
+	-> The FROM instruction initializes a new build stage and sets the Base Image for subsequent instructions. 
+Example: 
+FROM <image> [AS <name>]
+FROM <image>[:<tag>] [AS <name>]
+
+Note: 
+ARG is the only instruction that may precede FROM in the Dockerfile.
+FROM can appear multiple times within a single Dockerfile to create multiple images or use one build stage as a dependency for another.
+
+
+#RUN
+	-> The RUN instruction will execute any commands in a new layer on top of the current image and commit the results. 
+
+Example:
+RUN <command> 
+RUN ["executable", "param1", "param2"]
+
+#CMD
+	-> The main purpose of a CMD is to provide defaults cmd for an executing container.
+Example:
+CMD ["/bin/bash"]
+
+#ENTRYPOINT
+	-> ENTRYPOINT looks similar to CMD, because it also allows you to specify a command with parameters. 
+	   The difference is ENTRYPOINT command and parameters are not ignored when Docker container runs with command line parameters.
+
+Example:
+ENTRYPOINT ["executable", "param1", "param2"] 
+
+#WORKDIR
+-> The WORKDIR instruction sets the working directory for any RUN, CMD, ENTRYPOINT, COPY and ADD instructions that follow it in the Dockerfile.
+The WORKDIR instruction can be used multiple times in a Dockerfile.
+
+Example: WORKDIR /path/to/workdir
+
+
+#USER
+	-> The USER instruction sets the user name (or UID) and optionally the user group (or GID) to use when running the image.
+Example:
+USER <user>[:<group>]
+
+#ARG
+	-> The ARG instruction defines a variable that users can pass at build-time.
+Example:
+ARG <name>[=<default value>]
+
+#ENV
+	-> The ENV instruction sets the environment variable <key> to the value <value>. 
+	This value will be in the environment for all subsequent instructions in the build stage and can be replaced inline in many as well.
+Example:
+ENV <key> <value>
+ENV <key>=<value>
+
+#COPY
+	-> The COPY instruction copies new files or directories from <src> and adds them to the filesystem of the container at the path <dest>.
+Example:
+COPY hom* /mydir/ 
+
+#ADD
+	-> The ADD instruction copies new files, directories or remote file URLs from <src> and adds them to the filesystem of the image at the path <dest>.
+
+Example:
+ADD hom* /mydir/ 
+
+
+#VOLUME
+	-> The VOLUME instruction creates a mount point with the specified name and marks it as holding externally mounted volumes from native host or other containers. 
+Example:
+VOLUME ["/data"]
+
+#EXPOSE
+	-> The EXPOSE instruction tells Docker that the container listens on the specified network ports at runtime. 
+The EXPOSE instruction does not actually publish the port.
+Example: default is tcp
+EXPOSE 80/udp
+
+#SHELL
+	-> The SHELL instruction allows the default shell used for the shell form of commands to be overridden.
+Example
+SHELL ["executable", "parameters"]
+
+
+
+######  Best practices for writing Dockerfiles ######  Ref:  https://snyk.io/blog/10-best-practices-to-containerize-nodejs-web-applications-with-docker/
+
+1. Use Minimal Base Images:  // use alpine & slim variant of images
+
+2. Minimize the no. of Layers in Docker Image.  // Combine Multiple commands in to one.
+
+3. Multi-Stage Build. // https://docs.docker.com/build/building/multi-stage/
+
+4. Don’t install unnecessary packages.   // --no-install-recommends
+
+5. Leverage build cache.
+
+Example:1
+### BLOATED IMAGE   ####
+
+FROM ubuntu
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends mysql-client \
+    && rm -rf /var/lib/apt/lists/*
+ENTRYPOINT ["mysql"]
+
+### Optimized Image ###
+
+FROM alpine:3.14
+RUN apk add --no-cache mysql-client
+ENTRYPOINT ["mysql"]
+
+
+#### Docker Networking ####  Ref: https://docs.docker.com/network/
+
+Docker’s networking subsystem is pluggable, using drivers. Several drivers exist by default, and provide core networking functionality:
+
+-> bridge: The default network driver.
+
+-> host: For standalone containers, remove network isolation between the container and the Docker host, and use the host’s networking directly.
+
+-> overlay: Overlay networks connect multiple Docker daemons together and enable swarm services to communicate with each other. 
+
+-> macvlan: Macvlan networks allow you to assign a MAC address to a container, making it appear as a physical device on your network. 
+Ref: https://www.linuxtechi.com/create-use-macvlan-network-in-docker/
+
+-> ipvlan: IPvlan networks give users total control over both IPv4 and IPv6 addressing. 
+
+-> none: For this container, disable all networking. 
+
+
+
+# Container networking ### Ref: https://docs.docker.com/config/containers/container-networking/
+
+-> A container has no information about what kind of network it’s attached to, whether it’s a bridge, an overlay, 
+a macvlan network, or a custom network plugin.
+
+-> A container only sees a network interface with an IP address, a gateway, a routing table, DNS services, and other networking details. 
+
+-> By default, when you create or run a container using docker create or docker run, 
+the container doesn’t expose any of its ports to the outside world. 
+
+
+
+
+#### Docker Storage ####   // To persist the data even the container get terminated.  Ref-link: https://docs.docker.com/storage/
+
+By default all files created inside a container are stored on a writable container layer. 
+
+#Key Point:
+-> Volumes are stored in a part of the host filesystem which is managed by Docker (/var/lib/docker/volumes/ on Linux).
+-> You can create a volume explicitly using the docker volume create command, or Docker can create a volume during container or service creation.
+
+# Creating Anonymous Volume:
+# docker run -it --name container1 -v /app ubuntu /bin/bash
+# ls /var/lib/docker/volumes/
+
+# Creating Named Volume:
+# docker run -it --name container2 -v myvol1:/app ubuntu /bin/bash
+# docker volume ls
+
+# Creating and Mounting volumes using "docker volume create" command.
+# docker volume create db-vol
+# docker run -it --name db-container --mount source=db-vol,target=/db-app ubuntu /bin/bash
+# docker volume inspect db-vol
+
+Bind mounts: 
+When you use a bind mount, a file or directory on the host machine is mounted into a container. 
+The file or directory is referenced by its absolute path on the host machine.
+
+If you use -v or --volume to bind-mount a file or directory that does not yet exist on the Docker host, -v creates the endpoint for you. 
+It is always created as a directory.
+
+If you use --mount to bind-mount a file or directory that does not yet exist on the Docker host, 
+Docker does not automatically create it for you, but generates an error.
+
+# docker run -it --name mycontainer1 --mount type=bind,source=/mycon-data,target=/hostfile ubuntu /bin/bash
+# docker inspect mycontainer1
+
+# docker run -it --name mycontainer10 -v /demo:/hostfile ubuntu /bin/bash
+# docker inspect mycontainer10
+
+# Volume sharing in containers:
+
+# docker run -it --name web -v demo:/app2 ubuntu /bin/bash
+# docker run -it --name db --privileged=true --volumes-from web centos /bin/bash
+
+
+#### Docker Compose ####  Ref: https://docs.docker.com/compose/
+
+-> Compose is a tool for defining and running multi-container Docker applications.
+-> you use a YAML file to configure your application’s services.
+-> Using a single command, you create and start all the services from your configuration.
+-> Compose works in all environments: production, staging, development, testing, as well as CI workflows. 
+
+#Compose File Template: ###
+
+version: "compose version"
+services:
+	<ServiceName1>
+		<Attribute1>: value
+		<Attribute2>: value
+	
+	<ServiceName2>
+
+
+#####################
+
+
+### Docker Container Monitoring ####
+
+##Using Commands:
+
+docker stat
+docker log
+docker top
+
+##Using CAdisor tool:  Ref: https://www.kubecost.com/kubernetes-devops-tools/cadvisor/
+
+---> run cadvisor as container  <----
+docker run \
+  --volume=/:/rootfs:ro \
+  --volume=/var/run:/var/run:rw \
+  --volume=/sys:/sys:ro \
+  --volume=/var/lib/docker/:/var/lib/docker:ro \
+  --publish=8080:8080 \
+  --detach=true \
+  --name=cadvisor \
+  gcr.io/cadvisor/cadvisor:v0.39.3
+
+
+#### Monitoring with CAdvisor, prometheus and Grafana.
+
+git clone https://github.com/networknuts/docker-monitoring.git
+
+# vim docker-compose.yml
+
+#create a file - docker-compose.yml inside it with the following contents
+#you also need to copy prometheus.yml file inside the same directory
+
+version: '3.2'
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+    - 9090:9090
+    command:
+    - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+    - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+    - cadvisor
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.39.3
+    container_name: cadvisor
+    ports:
+    - 8080:8080
+    volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:rw
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+    depends_on:
+    - redis
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+    - 6379:6379
+
+# vim prometheus.yml
+
+#prometheus.yml - file
+#this must be in the same directory as of docker-compose.yml file
+
+scrape_configs:
+- job_name: cadvisor
+  scrape_interval: 5s
+  static_configs:
+  - targets:
+    - cadvisor:8080
+
+
+##### Docker Enterprise #### Ref: https://docs.docker.com.xy2401.com/ee/
+	
